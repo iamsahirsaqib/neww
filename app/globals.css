@@ -882,7 +882,7 @@ body {
 
 
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 
 /* Theme variables for consistency with header and slider */
 :root {
@@ -1135,7 +1135,6 @@ body {
 
 
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 /* Theme variables for consistency with header, slider, and AboutUs */
 :root {
@@ -1393,8 +1392,7 @@ body {
 
 
 
-/* Import Poppins font */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 
 /* Theme variables for consistency with header, slider, AboutUs, and PrivacyPolicy */
 :root {
