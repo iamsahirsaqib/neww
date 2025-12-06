@@ -1566,7 +1566,30 @@ useEffect(() => {
     setStep("success");
   };
 
+const [stats, setStats] = useState({
+    orders: 0,
+    products: 0,
+    revenue: 0,
+    reach: 0
+  });
 
+  // 2. Fetch Stats on Load
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('https://check.hrgraphics.site/get_dashboard_stats.php');
+        const data = await response.json();
+        
+        if (data.success) {
+          setStats(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
 
 
@@ -1605,27 +1628,36 @@ useEffect(() => {
             <div className="shazie-card shazie-home-card">
               <h3>Welcome to the Dashboard!</h3>
               <p>Manage your products, track sales, and more.</p>
+              
               <div className="shazie-order-summary">
+                
+                {/* Orders Card */}
                 <div className="shazie-order-stat">
-                  <h3>30</h3>
+                  <h3>{stats.orders}</h3>
                   <p> Orders</p>
                 </div>
+
+                {/* Products Card */}
                 <div className="shazie-order-stat">
-                  <h3>50</h3>
+                  <h3>{stats.products}</h3>
                   <p>Products</p>
                 </div>
+
+                {/* Revenue Card */}
                 <div className="shazie-order-stat">
-                  <h3>AED: 15</h3>
+                  <h3>AED: {parseFloat(stats.revenue).toLocaleString()}</h3>
                   <p>Revenue Summary</p>
                 </div>
+
+                {/* Reach Card */}
                 <div className="shazie-order-stat">
-                  <h3>8</h3>
+                  <h3>{stats.reach}</h3>
                   <p>Store Reach</p>
                 </div>
+
               </div>
             </div>
           )}
-
 
 
 
