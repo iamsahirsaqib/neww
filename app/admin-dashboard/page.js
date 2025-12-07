@@ -1424,23 +1424,63 @@ const zHandleEditProduct = (id) => {
 // Save edit
 const zHandleSaveEdit = async () => {
   try {
+    // Map your frontend field names to backend expected names
+    const updateData = {
+      id: zEditingProduct.id,
+      title: zEditingProduct.title,
+      description: zEditingProduct.description,
+      price: zEditingProduct.price,
+      sale_price: zEditingProduct.salePrice || zEditingProduct.sale_price, // Map to snake_case
+      delivery_charges: zEditingProduct.deliveryCharges || zEditingProduct.delivery_charges,
+      discount_percent: zEditingProduct.discountPercent || zEditingProduct.discount_percent,
+      stock: zEditingProduct.stock,
+      category_id: zEditingProduct.categoryId || zEditingProduct.category_id,
+      colors: zEditingProduct.colors || [],
+      sizes: zEditingProduct.sizes || [],
+      tags: zEditingProduct.tags || [],
+      images: zEditingProduct.images || []
+    };
+    
+    console.log('Sending update data:', updateData);
+    
     const response = await fetch(`${API_BASE_URL}/update_product.php`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(zEditingProduct)
+      body: JSON.stringify(updateData)
     });
     
-    const data = await response.json();
-    if (data.success) {
+    // First check if response is OK
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const responseText = await response.text();
+    console.log('Raw response:', responseText);
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse JSON:', e);
+      alert('Server returned invalid response');
+      return;
+    }
+    
+    console.log('Parsed response:', data);
+    
+    // Check for success - adjust based on your PHP response format
+    if (data.status === 'success' || data.success === true) {
       setZShowEditModal(false);
       zFetchProducts(); // Refresh the list
+      alert('Product updated successfully!');
     } else {
-      alert('Error updating product');
+      alert('Error: ' + (data.message || 'Unknown error'));
     }
   } catch (error) {
     console.error('Error updating product:', error);
+    alert('Failed to update product: ' + error.message);
   }
 };
 
