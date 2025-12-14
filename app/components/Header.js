@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '../context/LanguageContext';
-import { FiUser, FiShoppingCart, FiSearch, FiX } from 'react-icons/fi'; // Added FiX for close button
+import { FiUser, FiShoppingCart, FiSearch, FiX } from 'react-icons/fi';
 import { FaGlobe } from 'react-icons/fa';
 
 const Header = () => {
@@ -69,7 +69,8 @@ const Header = () => {
   const updateCartCount = () => {
     if (typeof window !== 'undefined') {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      // Added parseInt to ensure quantities are treated as numbers, not strings
+      const total = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
       setCartCount(total);
     }
   };
@@ -254,9 +255,10 @@ const Header = () => {
                 {mobileSearchOpen ? <FiX size={22} /> : <FiSearch size={22} />}
             </button>
 
+            {/* --- CART ICON WITH FIXED BADGE LOGIC --- */}
             <Link href="/cart" className="hicon-link cart-link" style={{ position: 'relative' }} aria-label="Cart">
                 <FiShoppingCart size={22} />
-                {cartCount > 0 && (
+                {cartCount > 0 ? (
                 <span style={{
                     position: 'absolute', top: '-8px', right: '-8px',
                     background: 'red', color: 'white', fontSize: '10px',
@@ -265,7 +267,7 @@ const Header = () => {
                 }}>
                     {cartCount}
                 </span>
-                )}
+                ) : null}
             </Link>
 
             <div className="hlanguage-selector" style={{ display: 'flex', alignItems: 'center' }}>
