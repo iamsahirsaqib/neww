@@ -6,21 +6,18 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { Autoplay, Navigation, Pagination } from 'swiper/modules';
-import { FaTag } from 'react-icons/fa'; // Added for discount tag
-import { useRouter } from 'next/navigation';
+import { FaTag } from 'react-icons/fa';
 
 const TrendingProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
-  // API Configuration
+  // API URLs
   const API_URL = "https://check.hrgraphics.site";
   const TRACK_PRODUCT_VIEW_URL = "https://check.hrgraphics.site/track-product-view.php";
   const BASE_IMAGE_URL = "https://check.hrgraphics.site/";
 
-  // --- HELPER FUNCTIONS (From First File) ---
-
+  // --- Helper: Price Cleaner ---
   const getPriceValue = (priceStr) => {
     if (!priceStr) return 0;
     const str = String(priceStr);
@@ -28,11 +25,9 @@ const TrendingProducts = () => {
     return parseFloat(cleaned) || 0;
   };
 
-  // Function to track product view when user clicks
+  // --- Helper: Tracking ---
   const trackProductView = async (product) => {
     try {
-      console.log('Tracking product view for:', product.name);
-      
       const productViewData = {
         product_id: product.id,
         product_name: product.name,
@@ -41,33 +36,46 @@ const TrendingProducts = () => {
         referrer: document.referrer || 'direct',
         user_agent: navigator.userAgent,
         timestamp: new Date().toISOString(),
-        action: 'product_click_trending' // Distinguish click source
+        action: 'product_click_trending'
       };
 
-      // Send tracking request with keepalive
       await fetch(TRACK_PRODUCT_VIEW_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productViewData),
         keepalive: true 
       });
-      return true;
     } catch (error) {
-      console.error('Product view tracking failed:', error);
-      return false;
+      console.error('Tracking failed:', error);
     }
   };
 
-  // Handle click: Track -> Navigate
+  // --- Handle Click ---
   const handleProductClick = async (e, product) => {
-    e.preventDefault();
-    // Track the view
+    e.preventDefault(); 
     await trackProductView(product);
-    // Navigate
     window.location.href = `/product-detail/${product.id}`;
   };
 
-  // --- DATA FETCHING ---
+  // --- Helper: Image Component ---
+  const ProductImage = ({ src, alt }) => {
+    const [imgSrc, setImgSrc] = useState(src);
+    useEffect(() => { setImgSrc(src); }, [src]);
+
+    return (
+      <img
+        src={imgSrc}
+        alt={alt}
+        // Using inline styles to match your Page.js exactly
+        style={{ width: '100%', height: '300px', objectFit: 'cover', borderRadius: '8px' }}
+        onError={(e) => {
+          e.target.onerror = null;
+          setImgSrc('https://via.placeholder.com/300x300/cccccc/969696?text=Image+Error');
+        }}
+      />
+    );
+  };
+
   useEffect(() => {
     const fetchTrending = async () => {
       try {
@@ -81,9 +89,8 @@ const TrendingProducts = () => {
             productsArray = data;
         }
 
-        // Format products using the same logic as your main page
         const formattedProducts = productsArray.map((item, index) => {
-            // Image Parsing Logic
+            // --- Image Logic ---
             let rawImage = item.images || item.image || item.product_image;
             let finalImageUrl = '';
   
@@ -115,11 +122,15 @@ const TrendingProducts = () => {
               finalImageUrl = 'https://via.placeholder.com/300x300/cccccc/969696?text=No+Image';
             }
             
+            // --- Price Logic ---
+            const originalPriceRaw = item.regular_price || item.old_price || item.price || '0';
+            const currentPriceRaw = item.sale_price || item.price || '0';
+
             return {
               id: item.id || index + 1,
               name: item.title || item.name || `Product ${index + 1}`,
-              originalPrice: item.price?.toString() || '0', // Assuming API sends original price in 'price' or similar field
-              price: (item.sale_price || item.price || '0').toString(),
+              originalPrice: originalPriceRaw.toString(), 
+              price: currentPriceRaw.toString(),
               image: finalImageUrl,
               discountPercent: item.discount_percent || 0,
             };
@@ -136,49 +147,27 @@ const TrendingProducts = () => {
     fetchTrending();
   }, []);
 
-  // --- SUB-COMPONENT FOR IMAGE ---
-  const ProductImage = ({ src, alt }) => {
-    const [imgSrc, setImgSrc] = useState(src);
-    useEffect(() => { setImgSrc(src); }, [src]);
-
-    return (
-      <img
-        src={imgSrc}
-        alt={alt}
-        className="productImage"
-        onError={(e) => {
-          e.target.onerror = null;
-          setImgSrc('https://via.placeholder.com/300x300/cccccc/969696?text=Image+Error');
-        }}
-      />
-    );
-  };
-
-  if (loading) {
-    return <div className="container" style={{textAlign:'center', padding:'50px'}}>Loading Trending Products...</div>;
-  }
-
+  if (loading) return <div className="container" style={{textAlign:'center', padding:'50px'}}>Loading...</div>;
   if (products.length === 0) return null; 
 
   return (
     <section className="trendingProducts">
       <div className="container">
-        <h2 style={{ marginBottom: '20px' }}>Trending Products</h2>
+        <h1>Trending Products</h1>
         <Swiper
           modules={[Autoplay, Navigation, Pagination]}
-          spaceBetween={20}
+          spaceBetween={30}
           slidesPerView={1}
           autoplay={{ delay: 3000, disableOnInteraction: false }}
           navigation
           pagination={{ clickable: true }}
           breakpoints={{
             640: { slidesPerView: 2 },
-            1024: { slidesPerView: 4 }, // Adjusted to 4 to match typical product grids
+            1024: { slidesPerView: 3 }, // Matching the grid layout count typically
           }}
-          style={{ paddingBottom: '40px' }} // Space for pagination dots
+          style={{ paddingBottom: '40px' }}
         >
           {products.map((product) => {
-             // Calculate Discount logic for display
              const originalValue = getPriceValue(product.originalPrice);
              const priceValue = getPriceValue(product.price);
              const hasDiscount = originalValue > priceValue && originalValue > 0;
@@ -187,101 +176,78 @@ const TrendingProducts = () => {
 
             return (
                 <SwiperSlide key={product.id}>
-                <div 
+                  {/* Matching Structure to Page.js */}
+                  <div 
                     className="productCard" 
                     onClick={(e) => handleProductClick(e, product)}
-                    style={{ cursor: 'pointer' }}
-                >
+                    style={{ cursor: 'pointer', padding: '10px' }} 
+                  >
                     <div className="imageContainer">
                         <ProductImage src={product.image} alt={product.name} />
                     </div>
                     
-                    <h3>{product.name}</h3>
+                    <h2>{product.name}</h2>
                     
                     <p className="price">
                         {hasDiscount ? (
                         <>
-                            <span style={{ textDecoration: 'line-through', color: '#d32f2f', marginRight: '10px', fontSize: '0.9em' }}>
-                            AED {product.originalPrice}
+                            <span style={{ textDecoration: 'line-through', color: '#d32f2f', marginRight: '10px' }}>
+                                AED {product.originalPrice}
                             </span>
                             <span style={{ color: 'rgba(20, 20, 20, 0.95)', fontWeight: 'bold' }}>
-                            AED {product.price}
+                                AED {product.price}
                             </span>
+                            
+                            {discountPercent > 0 && (
+                                <span className="product-page-discount-tag">
+                                    <FaTag className="product-page-tag-icon" />
+                                    <span className="product-page-tag-text">{discountPercent}% OFF</span>
+                                </span>
+                            )}
                         </>
                         ) : (
-                        <>AED {product.price}</>
-                        )}
-
-                        {hasDiscount && discountPercent > 0 && (
-                        <span className="product-page-discount-tag">
-                            <FaTag className="product-page-tag-icon" />
-                            <span className="product-page-tag-text">{discountPercent}% OFF</span>
-                        </span>
+                            <>AED {product.price}</>
                         )}
                     </p>
                     
-                    {/* No Add To Cart Button here as requested */}
-                </div>
+                    {/* No Add to Cart Button here, as requested */}
+                  </div>
                 </SwiperSlide>
             );
           })}
         </Swiper>
       </div>
 
-      {/* STYLES (Merged from your provided file) */}
+      {/* EXACT CSS FROM PAGE.JS */}
       <style jsx>{`
         .productCard {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            height: 100%;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          /* Ensure basic card styling matches the grid layout if it had any defaults */
+          background: #fff;
+          border-radius: 8px;
         }
         
         .productCard:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
 
-        .imageContainer {
-            width: 100%;
-            height: 250px;
-            overflow: hidden;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        /* Using global selector for img inside scoped jsx or the subcomponent class */
-        :global(.productImage) {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-
-        .productCard:hover :global(.productImage) {
-            transform: scale(1.05);
-        }
-
-        h3 {
-            font-size: 16px;
-            margin: 10px 0 5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        /* Ensure heading sizes match Page.js default H2 styles */
+        h2 {
+            font-size: 1.2rem;
+            margin: 10px 0;
             color: #333;
         }
 
         .price {
-            font-size: 16px;
-            color: #333;
+            margin: 10px 0;
+            font-size: 1rem;
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 5px;
         }
 
-        /* Discount Tag Styles copied from File 1 */
+        /* Discount Tag Styles matching Page.js */
         .product-page-discount-tag {
             display: inline-flex;
             align-items: center;
