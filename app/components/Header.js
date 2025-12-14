@@ -18,6 +18,7 @@ const Header = () => {
   
   const { language, switchLanguage } = useLanguage();
   const [cartCount, setCartCount] = useState(0);
+  const [isCartLoading, setIsCartLoading] = useState(true);
 
   // Close search when clicking outside
   const searchRef = useRef(null);
@@ -63,15 +64,39 @@ const Header = () => {
     const handleCartUpdate = () => updateCartCount();
     window.addEventListener('cartUpdated', handleCartUpdate);
 
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, []);
 
   const updateCartCount = () => {
     if (typeof window !== 'undefined') {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      // Added parseInt to ensure quantities are treated as numbers, not strings
-      const total = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
-      setCartCount(total);
+      setIsCartLoading(true);
+      try {
+        const cartData = localStorage.getItem('cart');
+        
+        if (!cartData || cartData === 'null' || cartData === 'undefined' || cartData === '[]') {
+          setCartCount(0);
+          setIsCartLoading(false);
+          return;
+        }
+        
+        const cart = JSON.parse(cartData);
+        
+        if (!Array.isArray(cart) || cart.length === 0) {
+          setCartCount(0);
+          setIsCartLoading(false);
+          return;
+        }
+        
+        const total = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
+        setCartCount(total);
+      } catch (error) {
+        console.error("Error reading cart from localStorage:", error);
+        setCartCount(0);
+      } finally {
+        setIsCartLoading(false);
+      }
     }
   };
 
@@ -255,19 +280,23 @@ const Header = () => {
                 {mobileSearchOpen ? <FiX size={22} /> : <FiSearch size={22} />}
             </button>
 
-            {/* --- CART ICON WITH FIXED BADGE LOGIC --- */}
+            {/* --- CART ICON --- */}
             <Link href="/cart" className="hicon-link cart-link" style={{ position: 'relative' }} aria-label="Cart">
                 <FiShoppingCart size={22} />
-                {cartCount > 0 ? (
-                <span style={{
-                    position: 'absolute', top: '-8px', right: '-8px',
-                    background: 'red', color: 'white', fontSize: '10px',
-                    borderRadius: '50%', width: '16px', height: '16px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    {cartCount}
-                </span>
-                ) : null}
+                
+                {/* UPDATED: Removed the "cartCount > 0" check. 
+                    Now it shows the badge even if the count is 0, 
+                    as long as loading is finished. */}
+                {!isCartLoading && (
+                  <span style={{
+                      position: 'absolute', top: '-8px', right: '-8px',
+                      background: 'red', color: 'white', fontSize: '10px',
+                      borderRadius: '50%', width: '16px', height: '16px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                      {cartCount}
+                  </span>
+                )}
             </Link>
 
             <div className="hlanguage-selector" style={{ display: 'flex', alignItems: 'center' }}>
